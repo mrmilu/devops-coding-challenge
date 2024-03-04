@@ -32,6 +32,8 @@ services:
       - devops_interview_test_local_postgres_data_backups:/backups
     env_file:
       - ./.envs/.local/.postgres
+    ports:
+      - '5432:5432'
 
   docs:
     image: devops_interview_test_local_docs
