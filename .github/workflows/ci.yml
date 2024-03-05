@@ -17,8 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.11"] # NOTE: I will keep this simple, but the propose should be have several version to guaranty compatibility
 
+    # DECISION: Deploy the mandatory services to execute the tests.
     services:
       db:
         image: postgres:14
@@ -50,6 +51,7 @@ jobs:
         run: |
           flake8 . --count --select=F401,E1,E2 --show-source --statistics
 
+      # DECISION: Ensure that the test coverage meets the appropriate thresholds.
       - name: Execute test
         run: |
           DATABASE_URL='postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:${{ env.POSTGRES_PORT }}/${{ env.POSTGRES_DB }}' \
@@ -76,6 +78,7 @@ jobs:
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.GITHUB_REGISTRY }} -u $ --password-stdin
 
+      # DECISION: Check the security vulneravilities related to the docker image
       - name: Scan Docker image
         uses: snyk/actions/docker@master
         continue-on-error: true
@@ -95,7 +98,8 @@ jobs:
       - name: Push image
         run: docker push ${{ env.GITHUB_REGISTRY }}/${{env.GITHUB_REPOSITORY}}/${{env.DOCKER_IMAGE_TAG}}
 
-  # TODO: Add the required config to the project to declare the infra componets
+  # DECISION: Create a dummy example about how validate the terraform code and plan operation
+  # TODO: Add the required config to the project to declare the infra componets (terraform init...)
   # terraform:
   #   name: "Terraform check"
   #   runs-on: ubuntu-latest
@@ -132,6 +136,7 @@ jobs:
   #       run: terraform plan -no-color -input=false
   #       continue-on-error: true
 
+  # DECISION: Create a dummy deploy for multiple environments (dev, pro)
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
