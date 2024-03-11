@@ -1,0 +1,52 @@
+name: Docker Image CI
+
+on:
+  push:
+    tags:
+      - 'v**'
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: docker.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: {{ vars.DOCKER_USER }}/ {{ vars.DOCKER_IMAGE_NAME }}  #${{ github.repository }}
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # Login against a Docker registry 
+    - name: Log into registry ${{ env.REGISTRY }}
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ vars.DOCKER_USER }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract tag name
+      id: extract-tag
+      run: echo "::set-output name=tag_name::$(echo ${GITHUB_REF#refs/tags/})"
+
+    # Extract metadata (tags, labels) for Docker
+    # https://github.com/docker/metadata-action
+    - name: Extract Docker metadata
+      id: meta
+      uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+    - name: Build and push Docker image
+      id: build-and-push
+      uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+      with:
+        context: .
+        file: ./compose/local/django/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+    

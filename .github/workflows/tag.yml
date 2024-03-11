@@ -1,0 +1,60 @@
+name: Generate Tag on Merge
+
+on:
+  pull_request:
+    types: [closed]
+    paths-ignore:
+      - ".github/**"
+      - "docs/**"
+
+jobs:
+  tag_on_merge:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Check if PR was merged
+      id: check_merge
+      run: |
+        if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
+          echo "PR was merged"
+          echo "::set-output name=MERGED::true"
+        else
+          echo "PR was not merged"
+          echo "::set-output name=MERGED::false"
+        fi
+
+    - name: Generate Tag
+      if: steps.check_merge.outputs.MERGED == 'true'
+      env:
+        GH_TOKEN: "${{ github.token }}"
+      run: |
+
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git config -l
+
+        latest_tag=$(git describe --tags --abbrev=0 || true)  
+
+        if [ -z "$latest_tag" ]; then
+          new_version="01"
+        else
+          tag_version=${latest_tag:1} 
+          numeric_part=${tag_version#*.} 
+          
+
+          if [[ $numeric_part =~ ^[0-9]+$ ]]; then
+            new_numeric_part=$((numeric_part + 1))
+          else
+            new_numeric_part=1
+          fi
+
+          new_version=$(printf "%02d" $new_numeric_part)
+        fi
+        
+        new_tag="v$new_version"
+        
+        git tag -a $new_tag -m "Automatically generated tag"
+        git push --tags
